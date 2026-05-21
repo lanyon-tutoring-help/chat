@@ -1,1 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chat</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #000; /* Fully black background for a sleek look */
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
 
+  /* Header */
+  header {
+    background-color: #111;
+    padding: 15px;
+    text-align: center;
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+
+  /* Messages container */
+  #messages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    background-color: #000;
+  }
+
+  /* Message container: align left or right, with sender name above message */
+  .message-container {
+    display: flex;
+    flex-direction: column;
+    margin: 8px 0;
+    max-width: 70%;
+  }
+
+  /* Sender name above message */
+  .sender-name {
+    font-size: 0.75em;
+    color: #aaa;
+    margin-bottom: 2px;
+    padding: 0 10px;
+    font-style: italic;
+  }
+
+  /* Message bubbles: styles for user and others */
+  .message {
+    padding: 10px 16px;
+    border-radius: 20px;
+    word-wrap: break-word;
+    font-size: 0.95em;
+    line-height: 1.4;
+  }
+
+  /* Your message (blue, right) */
+  .message.self {
+    align-self: flex-end;
+    background-color: #3772ff;
+    color: #fff;
+    border-radius: 20px 20px 0 20px;
+  }
+
+  /* Others' messages (dark gray, left) */
+  .message.other {
+    align-self: flex-start;
+    background-color: #444;
+    color: #fff;
+    border-radius: 20px 20px 20px 0;
+  }
+
+  /* Input area styling */
+  #inputContainer {
+    display: flex;
+    padding: 10px;
+    background-color: #111;
+  }
+
+  #messageInput {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1em;
+    outline: none;
+    background-color: #222;
+    color: #fff;
+  }
+
+  #sendBtn {
+    margin-left: 10px;
+    padding: 0 25px;
+    border: none;
+    border-radius: 25px;
+    background-color: #3772ff;
+    color: #fff;
+    font-weight: bold;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  #sendBtn:hover {
+    background-color: #2551cc;
+  }
+</style>
+</head>
+<body>
+<header>Chat</header>
+<div id="messages"></div>
+<div id="inputContainer">
+  <input type="text" id="messageInput" placeholder="Type a message..." />
+  <button id="sendBtn">Send</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+
+  // Prompt for username every time
+  let username = prompt("Enter your username:");
+
+  const messagesDiv = document.getElementById('messages');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  function addMessage(msg, sender, user) {
+    const container = document.createElement('div');
+    container.className = 'message-container';
+
+    // Create sender name element
+    const senderName = document.createElement('div');
+    senderName.className = 'sender-name';
+    senderName.innerText = user;
+
+    // Create message bubble
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message';
+    if (sender === 'self') {
+      msgDiv.classList.add('self');
+    } else {
+      msgDiv.classList.add('other');
+    }
+    msgDiv.innerText = msg;
+
+    // Add sender name above message
+    container.appendChild(senderName);
+    container.appendChild(msgDiv);
+
+    // Align right for self, left for others
+    if (sender === 'self') {
+      container.style.alignSelf = 'flex-end';
+    } else {
+      container.style.alignSelf = 'flex-start';
+    }
+
+    messagesDiv.appendChild(container);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  socket.on('chat message', (data) => {
+    if (data.username === username) {
+      addMessage(`${data.message}`, 'self', data.username);
+    } else {
+      addMessage(`${data.message}`, 'other', data.username);
+    }
+  });
+
+  // Send message
+  sendBtn.onclick = () => {
+    const message = messageInput.value.trim();
+    if (message) {
+      socket.emit('chat message', { username, message });
+      messageInput.value = '';
+    }
+  };
+
+  // Send on Enter press
+  messageInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      sendBtn.click();
+    }
+  });
+</script>
+</body>
+</html>
