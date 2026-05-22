@@ -8,13 +8,11 @@
   body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #000; /* Fully black background for a sleek look */
+    background-color: #000;
     display: flex;
     flex-direction: column;
     height: 100vh;
   }
-
-  /* Header */
   header {
     background-color: #111;
     padding: 15px;
@@ -24,8 +22,6 @@
     color: #fff;
     letter-spacing: 1px;
   }
-
-  /* Messages container */
   #messages {
     flex: 1;
     padding: 10px;
@@ -34,16 +30,12 @@
     flex-direction: column;
     background-color: #000;
   }
-
-  /* Message container: align left or right, with sender name above message */
   .message-container {
     display: flex;
     flex-direction: column;
     margin: 8px 0;
     max-width: 70%;
   }
-
-  /* Sender name above message */
   .sender-name {
     font-size: 0.75em;
     color: #aaa;
@@ -51,8 +43,6 @@
     padding: 0 10px;
     font-style: italic;
   }
-
-  /* Message bubbles: styles for user and others */
   .message {
     padding: 10px 16px;
     border-radius: 20px;
@@ -60,30 +50,23 @@
     font-size: 0.95em;
     line-height: 1.4;
   }
-
-  /* Your message (blue, right) */
   .message.self {
     align-self: flex-end;
     background-color: #3772ff;
     color: #fff;
     border-radius: 20px 20px 0 20px;
   }
-
-  /* Others' messages (dark gray, left) */
   .message.other {
     align-self: flex-start;
     background-color: #444;
     color: #fff;
     border-radius: 20px 20px 20px 0;
   }
-
-  /* Input area styling */
   #inputContainer {
     display: flex;
     padding: 10px;
     background-color: #111;
   }
-
   #messageInput {
     flex: 1;
     padding: 12px 20px;
@@ -94,7 +77,6 @@
     background-color: #222;
     color: #fff;
   }
-
   #sendBtn {
     margin-left: 10px;
     padding: 0 25px;
@@ -107,7 +89,6 @@
     cursor: pointer;
     transition: background-color 0.2s;
   }
-
   #sendBtn:hover {
     background-color: #2551cc;
   }
@@ -121,42 +102,43 @@
   <button id="sendBtn">Send</button>
 </div>
 
-<script src="/socket.io/socket.io.js"></script>
+<!-- Include Supabase JS library -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/supabase.min.js"></script>
 <script>
-  const socket = io();
+  // Replace these with your actual Supabase project details
+  const supabaseUrl = 'https://wvuiozuuqwmoaqxnxcsv.supabase.co'; // e.g., https://xyzcompany.supabase.co
+  const supabaseKey = 'sb_publishable_c0qfTWZLVDWERGhY3APRjw_qZfIbVJk'; // Your anon key
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-  // Prompt for username every time
   let username = prompt("Enter your username:");
 
   const messagesDiv = document.getElementById('messages');
   const messageInput = document.getElementById('messageInput');
   const sendBtn = document.getElementById('sendBtn');
 
-  function addMessage(msg, sender, user) {
+  // Function to add message to chat window
+  function addMessage(msg, sender, isSelf) {
     const container = document.createElement('div');
     container.className = 'message-container';
 
-    // Create sender name element
     const senderName = document.createElement('div');
     senderName.className = 'sender-name';
-    senderName.innerText = user;
+    senderName.innerText = sender;
 
-    // Create message bubble
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message';
-    if (sender === 'self') {
+    msgDiv.innerText = msg;
+    if (isSelf) {
       msgDiv.classList.add('self');
     } else {
       msgDiv.classList.add('other');
     }
-    msgDiv.innerText = msg;
 
-    // Add sender name above message
     container.appendChild(senderName);
     container.appendChild(msgDiv);
 
     // Align right for self, left for others
-    if (sender === 'self') {
+    if (isSelf) {
       container.style.alignSelf = 'flex-end';
     } else {
       container.style.alignSelf = 'flex-start';
@@ -166,29 +148,49 @@
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-  socket.on('chat message', (data) => {
-    if (data.username === username) {
-      addMessage(`${data.message}`, 'self', data.username);
-    } else {
-      addMessage(`${data.message}`, 'other', data.username);
-    }
-  });
+  // Load existing messages when page loads
+  async function loadMessages() {
+    const { data } = await supabase
+      .from('messages')
+      .select('*')
+      .order('created_at', { ascending: true });
+    data.forEach(msg => addMessage(msg.message, msg.username, msg.username === username));
+  }
 
-  // Send message
+  // Send message: insert into database
+  async function sendMessage(msg) {
+    await supabase
+      .from('messages')
+      .insert({ username, message: msg });
+  }
+
+  // Handle new messages in real-time
+  supabase
+    .from('messages')
+    .on('INSERT', payload => {
+      const msg = payload.new;
+      addMessage(msg.message, msg.username, msg.username === username);
+    })
+    .subscribe();
+
+  // Send button click
   sendBtn.onclick = () => {
     const message = messageInput.value.trim();
     if (message) {
-      socket.emit('chat message', { username, message });
+      sendMessage(message);
       messageInput.value = '';
     }
   };
 
-  // Send on Enter press
+  // Send message on Enter key
   messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       sendBtn.click();
     }
   });
+
+  // Load existing messages on page load
+  loadMessages();
 </script>
 </body>
 </html>
