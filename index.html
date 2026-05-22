@@ -293,7 +293,7 @@
                     // But checking exact timing is tricky without IDs. 
                     // Let's just render everything coming in via subscription 
                     // and NOT render locally in sendMessage to keep it strictly synced.
-                    da
+                    
                     // FIXED LOGIC: clear local render in sendMessage, rely on Realtime.
                     renderMessage(newMsg, isMe);
                 })
