@@ -1,316 +1,278 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messenger</title>
-    <!-- Import Supabase from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --bg-color: #121212;
-            --chat-bg: #1e1e1e;
-            --input-bg: #2c2c2c;
-            --text-color: #e0e0e0;
-            --my-bubble: #3b82f6; /* Light Blue */
-            --other-bubble: #374151; /* Dark Grey */
-            --accent: #3b82f6;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Messenger</title>
+<!-- Import Supabase from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --background: #36393f; /* Discord dark background */
+    --chat-background: #2f3136;
+    --input-background: #40444b;
+    --text-color: #dcddde;
+    --user-bubble: #5865f2;
+    --other-bubble: #444851;
+    --accent: #5865f2;
+  }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--background);
+    color: var(--text-color);
+  }
 
-        /* Header */
-        header {
-            padding: 15px;
-            background-color: #000;
-            border-bottom: 1px solid #333;
-            text-align: center;
-            font-weight: bold;
-            letter-spacing: 1px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            z-index: 10;
-        }
+  /* Header similar to Discord's top bar */
+  header {
+    background-color: #202225;
+    padding: 16px;
+    font-weight: 600;
+    font-size: 1.2rem;
+    letter-spacing: 1px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    color: #fff;
+  }
 
-        /* Chat Output Area */
-        #chat-box {
-            flex-grow: 1;
-            background-color: var(--chat-bg);
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            scroll-behavior: smooth;
-        }
+  /* Chat messages container */
+  #chat-box {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 
-        /* Scrollbar styling */
-        #chat-box::-webkit-scrollbar {
-            width: 8px;
-        }
-        #chat-box::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 4px;
-        }
+  /* Scrollbar styles for WebKit */
+  #chat-box::-webkit-scrollbar {
+    width: 8px;
+  }
+  #chat-box::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+  }
 
-        /* Message Bubbles */
-        .message-wrapper {
-            display: flex;
-            flex-direction: column;
-            max-width: 75%;
-            animation: fadeIn 0.3s ease;
-        }
+  /* Message wrapper */
+  .message-wrapper {
+    display: flex;
+    flex-direction: column;
+    max-width: 70%;
+    animation: fadeIn 0.3s ease;
+  }
 
-        .message-wrapper.me {
-            align-self: flex-end;
-            align-items: flex-end;
-        }
+  /* Alignment for user messages */
+  .me {
+    align-self: flex-end;
+    align-items: flex-end;
+  }
 
-        .message-wrapper.other {
-            align-self: flex-start;
-            align-items: flex-start;
-        }
+  /* Alignment for others' messages */
+  .other {
+    align-self: flex-start;
+    align-items: flex-start;
+  }
 
-        .username-label {
-            font-size: 0.75rem;
-            color: #888;
-            margin-bottom: 4px;
-            margin-left: 4px;
-            margin-right: 4px;
-        }
+  /* Username label, smaller font */
+  .username-label {
+    font-size: 0.75rem;
+    color: #bbb;
+    margin-bottom: 2px;
+    margin-left: 4px;
+    margin-right: 4px;
+  }
 
-        .bubble {
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 1rem;
-            line-height: 1.4;
-            word-wrap: break-word;
-            position: relative;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-        }
+  /* Message bubble styling */
+  .bubble {
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 1rem;
+    line-height: 1.4;
+    max-width: 100%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    word-wrap: break-word;
+    transition: background-color 0.2s;
+  }
 
-        /* Specific styles based on alignment */
-        .me .bubble {
-            background-color: var(--my-bubble);
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
+  /* Different colors for sender/receiver */
+  .me .bubble {
+    background-color: var(--user-bubble);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
 
-        .other .bubble {
-            background-color: var(--other-bubble);
-            color: #f0f0f0;
-            border-bottom-left-radius: 4px;
-        }
+  .other .bubble {
+    background-color: var(--other-bubble);
+    color: #ddd;
+    border-bottom-left-radius: 4px;
+  }
 
-        /* Input Area */
-        #input-area {
-            background-color: #000;
-            padding: 15px 20px;
-            display: flex;
-            gap: 10px;
-            border-top: 1px solid #333;
-        }
+  /* Input area at bottom, Discord style */
+  #input-area {
+    display: flex;
+    padding: 12px 20px;
+    background-color: #202225;
+    border-top: 1px solid #202225;
+    gap: 10px;
+  }
 
-        input[type="text"] {
-            flex-grow: 1;
-            padding: 12px;
-            border-radius: 25px;
-            background-color: var(--input-bg);
-            border: 1px solid #444;
-            color: white;
-            outline: none;
-            font-size: 1rem;
-            transition: border 0.2s;
-        }
+  #message-input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 25px;
+    border: 1px solid #444;
+    background-color: var(--input-background);
+    color: #ddd;
+    outline: none;
+    font-size: 1rem;
+    transition: border-color 0.2s, background-color 0.2s;
+  }
 
-        input[type="text"]:focus {
-            border-color: var(--accent);
-        }
+  #message-input:focus {
+    border-color: var(--accent);
+    background-color: #50545b;
+  }
 
-        button {
-            padding: 0 25px;
-            border-radius: 25px;
-            border: none;
-            background-color: var(--accent);
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+  #send-btn {
+    padding: 0 20px;
+    border-radius: 25px;
+    border: none;
+    background-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+  }
 
-        button:hover {
-            background-color: #2563eb;
-        }
+  #send-btn:hover {
+    background-color: #4752c4;
+  }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
 </head>
 <body>
 
-    <header>
-        MESSENGER
-    </header>
+<header>
+  MESSENGER
+</header>
 
-    <div id="chat-box">
-        <!-- Messages will appear here -->
-    </div>
+<div id="chat-box">
+  <!-- Messages will appear here -->
+</div>
 
-    <div id="input-area">
-        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
-        <button id="send-btn">Send</button>
-    </div>
+<div id="input-area">
+  <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" />
+  <button id="send-btn">Send</button>
+</div>
 
-    <script>
-        // ==========================================
-        // CONFIGURATION
-        // ==========================================
-        // TODO: REPLACE THESE WITH YOUR ACTUAL SUPABASE DETAILS
-        const SUPABASE_URL = 'https://bwsnojjdnvhtofwafvra.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_cDxiNejXenDIjEm3JVUxJA_z_8Y7Qd3';
-        // ==========================================
+<script>
+  // ==========================================
+  // CONFIGURATION
+  // ==========================================
+  const SUPABASE_URL = 'https://bwsnojjdnvhtofwafvra.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_cDxiNejXenDIjEm3JVUxJA_z_8Y7Qd3';
+  // ==========================================
 
-        // Initialize Supabase
-        const { createClient } = supabase;
-        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const { createClient } = supabase;
+  const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // DOM Elements
-        const chatBox = document.getElementById('chat-box');
-        const messageInput = document.getElementById('message-input');
-        const sendBtn = document.getElementById('send-btn');
+  const chatBox = document.getElementById('chat-box');
+  const messageInput = document.getElementById('message-input');
+  const sendBtn = document.getElementById('send-btn');
 
-        // State
-        let myUsername = localStorage.getItem('chatUsername');
+  let myUsername = localStorage.getItem('chatUsername');
 
-        // 1. Setup User
-        function initUser() {
-            if (!myUsername) {
-                let input = prompt("Please enter your username:");
-                if (input && input.trim() !== "") {
-                    myUsername = input.trim();
-                    localStorage.setItem('chatUsername', myUsername);
-                } else {
-                    myUsername = "Anonymous"; // Fallback
-                }
-            }
-            console.log("Logged in as:", myUsername);
-        }
+  function initUser() {
+    if (!myUsername) {
+      let input = prompt("Please enter your username:");
+      if (input && input.trim() !== "") {
+        myUsername = input.trim();
+        localStorage.setItem('chatUsername', myUsername);
+      } else {
+        myUsername = "Anonymous";
+      }
+    }
+    console.log("Logged in as:", myUsername);
+  }
 
-        // 2. Render a Single Message
-        function renderMessage(msg, isMe) {
-            const wrapper = document.createElement('div');
-            wrapper.classList.add('message-wrapper');
-            wrapper.classList.add(isMe ? 'me' : 'other');
+  function renderMessage(msg, isMe) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'message-wrapper ' + (isMe ? 'me' : 'other');
 
-            const label = document.createElement('div');
-            label.classList.add('username-label');
-            label.innerText = msg.username;
+    const label = document.createElement('div');
+    label.className = 'username-label';
+    label.innerText = msg.username;
 
-            const bubble = document.createElement('div');
-            bubble.classList.add('bubble');
-            bubble.innerText = msg.content;
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerText = msg.content;
 
-            wrapper.appendChild(label);
-            wrapper.appendChild(bubble);
-            chatBox.appendChild(wrapper);
+    wrapper.appendChild(label);
+    wrapper.appendChild(bubble);
+    chatBox.appendChild(wrapper);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
 
-            // Scroll to bottom
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+  async function loadHistory() {
+    const { data, error } = await _supabase
+      .from('messages')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) console.error('Error loading:', error);
+    else {
+      data.forEach(msg => {
+        renderMessage(msg, msg.username === myUsername);
+      });
+    }
+  }
 
-        // 3. Load Initial History
-        async function loadHistory() {
-            const { data, error } = await _supabase
-                .from('messages')
-                .select('*')
-                .order('created_at', { ascending: true });
+  async function sendMessage() {
+    const content = messageInput.value.trim();
+    if (!content) return;
+    messageInput.value = '';
 
-            if (error) console.error('Error loading:', error);
-            else {
-                data.forEach(msg => {
-                    renderMessage(msg, msg.username === myUsername);
-                });
-            }
-        }
+    const msg = { username: myUsername, content: content };
+    const { error } = await _supabase.from('messages').insert([msg]);
+    if (error) {
+      console.error('Error sending:', error);
+      alert('Error sending message. Check console.');
+    }
+  }
 
-        // 4. Send Message
-        async function sendMessage() {
-            const content = messageInput.value.trim();
-            if (!content) return;
+  function subscribeToMessages() {
+    _supabase
+      .channel('public:messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const newMsg = payload.new;
+        const isMe = newMsg.username === myUsername;
+        renderMessage(newMsg, isMe);
+      })
+      .subscribe();
+  }
 
-            messageInput.value = ''; // Clear input immediately
+  sendBtn.addEventListener('click', sendMessage);
+  messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
 
-            const msg = {
-                username: myUsername,
-                content: content
-            };
-
-            const { error } = await _supabase
-                .from('messages')
-                .insert([msg]);
-
-            if (error) {
-                console.error('Error sending:', error);
-                alert('Error sending message. Check console.');
-            }
-        }
-
-        // 5. Listen for Realtime Updates
-        function subscribeToMessages() {
-            _supabase
-                .channel('public:messages')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-                    const newMsg = payload.new;
-                    // Check if the message is from me to handle local render update if needed
-                    // Although our insert is instant-ish, listening to broadcast adds latency 
-                    // that might cause double rendering if we rendered 'sendMessage' locally already.
-                    // However, simple logic: just render it.
-                    // We check if we already rendered it? No, let's just render everything coming in
-                    // EXCEPT we rendered the "me" message locally in sendMessage. 
-                    
-                    // To avoid duplicates/simple logic:
-                    // We only render here if it is NOT myUsername (others).
-                    // Note: In a production app you'd use IDs to track this.
-                    const isMe = newMsg.username === myUsername;
-                    
-                    // We skip rendering here if it was just sent by us 
-                    // because sendMessage() already rendered it locally for better UX.
-                    // But checking exact timing is tricky without IDs. 
-                    // Let's just render everything coming in via subscription 
-                    // and NOT render locally in sendMessage to keep it strictly synced.
-                    
-                    // FIXED LOGIC: clear local render in sendMessage, rely on Realtime.
-                    renderMessage(newMsg, isMe);
-                })
-                .subscribe();
-        }
-
-        // Event Listeners
-        sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
-
-        // Initialize
-        initUser();
-        loadHistory();
-        subscribeToMessages();
-
-    </script>
+  initUser();
+  loadHistory();
+  subscribeToMessages();
+</script>
 </body>
 </html>
